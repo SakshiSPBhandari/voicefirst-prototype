@@ -43,7 +43,6 @@ const optionSpeak       = $('optionSpeak');
 const optionUpload      = $('optionUpload');
 const sheetCancel       = $('sheetCancel');
 
-// ── State ──────────────────────────────────
 const state = {
   recognition: null,
   isListening: false,
@@ -53,6 +52,7 @@ const state = {
   pendingType: null,       // 'voice' | 'audio'
   isTyping: false,
   demoTimer: null,
+  failsafeTimer: null, // Mobile browser hang fallback
 };
 
 // ── Status clock ───────────────────────────
@@ -149,6 +149,11 @@ function initRecognition() {
 
   // ── This fires continuously while speaking ──
   r.onresult = (event) => {
+    if (state.failsafeTimer) {
+      clearTimeout(state.failsafeTimer);
+      state.failsafeTimer = null;
+    }
+
     let interim = '';
     let finalChunk = '';
 
@@ -178,14 +183,14 @@ function initRecognition() {
   };
 
   r.onerror = (e) => {
-    if (e.error === 'not-allowed') {
-      recLabel.textContent = '⚠️ Mic access denied — using demo';
+    console.error("Speech API Error:", e.error);
+    if (e.error === 'no-speech') {
+      recLabel.textContent = 'No speech detected…';
+    } else {
+      recLabel.textContent = `🎙️ Demo mode (Mic issue: ${e.error})`;
       recDot.classList.add('paused');
       waveform.classList.add('paused');
-      // Fall back to demo
       startDemo();
-    } else if (e.error === 'no-speech') {
-      recLabel.textContent = 'No speech detected…';
     }
   };
 
@@ -212,14 +217,31 @@ function startListening() {
   }
 
   state.isListening = true;
-  try { state.recognition.start(); }
+  try { 
+    state.recognition.start(); 
+    
+    // Failsafe for mobile browsers holding API silently
+    if (state.failsafeTimer) clearTimeout(state.failsafeTimer);
+    state.failsafeTimer = setTimeout(() => {
+      // If nothing heard in 4.5 seconds, auto-trigger demo so user isn't stuck
+      if (!state.finalTranscript && !state.interimTranscript) {
+        recLabel.textContent = '🎙️ Demo mode (Mic blocked/timeout)';
+        try { state.recognition.stop(); } catch(e){}
+        startDemo();
+      }
+    }, 4500);
+  }
   catch (e) {
-    // already started — that's fine
+    // already started
   }
 }
 
 function stopListening() {
   state.isListening = false;
+  if (state.failsafeTimer) {
+    clearTimeout(state.failsafeTimer);
+    state.failsafeTimer = null;
+  }
   if (state.recognition) {
     try { state.recognition.stop(); } catch (_) {}
   }

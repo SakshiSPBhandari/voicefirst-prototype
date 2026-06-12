@@ -140,7 +140,6 @@ function initRecognition() {
   const r = new SR();
   r.continuous      = true;
   r.interimResults  = true;   // ← KEY: show words as spoken, not after
-  r.lang            = 'en-IN';
   r.maxAlternatives = 1;
 
   r.onstart = () => {
@@ -182,10 +181,21 @@ function initRecognition() {
     if (e.error === 'no-speech') {
       recLabel.textContent = 'No speech detected…';
     } else {
-      recLabel.textContent = `⚠️ Mic Error: ${e.error} (Check permissions)`;
+      recLabel.textContent = `⚠️ Error: ${e.error}. Tap here to simulate.`;
       recDot.classList.add('paused');
       waveform.classList.add('paused');
       state.isListening = false;
+      
+      // Allow manual simulation if API fails
+      recLabel.style.cursor = 'pointer';
+      recLabel.style.textDecoration = 'underline';
+      recLabel.onclick = () => {
+         recLabel.onclick = null;
+         recLabel.style.textDecoration = 'none';
+         recLabel.style.cursor = 'default';
+         recLabel.textContent = '🎙️ Simulating voice...';
+         startDemo();
+      };
     }
   };
 

@@ -149,11 +149,6 @@ function initRecognition() {
 
   // ── This fires continuously while speaking ──
   r.onresult = (event) => {
-    if (state.failsafeTimer) {
-      clearTimeout(state.failsafeTimer);
-      state.failsafeTimer = null;
-    }
-
     let interim = '';
     let finalChunk = '';
 
@@ -219,17 +214,6 @@ function startListening() {
   state.isListening = true;
   try { 
     state.recognition.start(); 
-    
-    // Failsafe for mobile browsers holding API silently
-    if (state.failsafeTimer) clearTimeout(state.failsafeTimer);
-    state.failsafeTimer = setTimeout(() => {
-      // If nothing heard in 4.5 seconds, auto-trigger demo so user isn't stuck
-      if (!state.finalTranscript && !state.interimTranscript) {
-        recLabel.textContent = '🎙️ Demo mode (Mic blocked/timeout)';
-        try { state.recognition.stop(); } catch(e){}
-        startDemo();
-      }
-    }, 4500);
   }
   catch (e) {
     // already started
@@ -238,10 +222,6 @@ function startListening() {
 
 function stopListening() {
   state.isListening = false;
-  if (state.failsafeTimer) {
-    clearTimeout(state.failsafeTimer);
-    state.failsafeTimer = null;
-  }
   if (state.recognition) {
     try { state.recognition.stop(); } catch (_) {}
   }

@@ -182,10 +182,10 @@ function initRecognition() {
     if (e.error === 'no-speech') {
       recLabel.textContent = 'No speech detected…';
     } else {
-      recLabel.textContent = `🎙️ Demo mode (Mic issue: ${e.error})`;
+      recLabel.textContent = `⚠️ Mic Error: ${e.error} (Check permissions)`;
       recDot.classList.add('paused');
       waveform.classList.add('paused');
-      startDemo();
+      state.isListening = false;
     }
   };
 
@@ -205,9 +205,9 @@ function startListening() {
   }
 
   if (!state.recognition) {
-    // Safari or unsupported — run demo
-    recLabel.textContent = '🎙️ Demo mode (real mic: Chrome)';
-    startDemo();
+    recLabel.textContent = '⚠️ Mic API not supported (Try Chrome!)';
+    recDot.classList.add('paused');
+    waveform.classList.add('paused');
     return;
   }
 
